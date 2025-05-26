@@ -1,6 +1,8 @@
 #include "rtti.h"
 
 #include <cassert>
+#include <cstdint>
+#include <vector>
 
 #include "common.h"
 
