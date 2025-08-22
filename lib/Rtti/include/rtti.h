@@ -200,12 +200,14 @@ namespace RTTI {
          */
         template <typename T>
         [[nodiscard]] T* cast() noexcept {
+            if (!this) return nullptr;
             return reinterpret_cast<T*>(
                 const_cast<void*>(_cast(TypeInfo<T>::Id())));
         }
 
         template <typename T>
         [[nodiscard]] T const* cast() const noexcept {
+            if (!this) return nullptr;
             return reinterpret_cast<T const*>(_cast(TypeInfo<T>::Id()));
         }
 

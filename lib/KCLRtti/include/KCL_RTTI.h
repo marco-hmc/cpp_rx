@@ -110,13 +110,13 @@ namespace KCL {
             typedef
                 typename std::remove_pointer<Derived>::type DerivedObjectType;
 
+            if (!aBasePtr) return nullptr;
+
             if constexpr (std::is_base_of<DerivedObjectType, Base>::value)
                 return static_cast<Derived>(aBasePtr);
-            else if (aBasePtr)
+            else
                 return reinterpret_cast<Derived>(aBasePtr->KCL_RTTI_DynamicCast(
                     GetTypeId<DerivedObjectType>()));
-            else
-                return nullptr;
         }
 
     }  // namespace RTTI

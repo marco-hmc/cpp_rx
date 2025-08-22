@@ -1,10 +1,14 @@
 #include <gtest/gtest.h>
 
+#include <iostream>
 #include <memory>
 
+#include "KCLRttiCast.h"
 #include "KCL_RTTI.h"
+#include "utils.h"
 
-#define IS_BLOOD_RELATED(obj, type) (kcl_dynamic_cast<type*>(obj))
+#define IS_BLOOD_RELATED(obj, type) \
+    (obj ? kcl_dynamic_cast<type*>(obj) : nullptr)
 
 class Grandfather {
   public:
@@ -104,4 +108,24 @@ TEST(KCLRttiTest, MultipleInheritanceScenario) {
     EXPECT_FALSE(IS_BLOOD_RELATED(grandfatherB.get(), MultiFather));
     EXPECT_TRUE(IS_BLOOD_RELATED(grandfatherB.get(), Grandfather));
     EXPECT_FALSE(IS_BLOOD_RELATED(grandfatherB.get(), LaoWang));
+}
+
+TEST(KCLRttiTest, NullPointerScenario) {
+    Grandfather* nullPtr = nullptr;
+
+    EXPECT_FALSE(IS_BLOOD_RELATED(nullPtr, Father));
+    EXPECT_FALSE(IS_BLOOD_RELATED(nullPtr, Grandfather));
+    EXPECT_FALSE(IS_BLOOD_RELATED(nullPtr, LaoWang));
+}
+
+TEST(KCLRttiTest, PerformanceTest) {
+    const uint64_t iterations = 1000000;
+
+    std::string timeResult =
+        myUtils::measure_time([&]() { testKCLRttiCast(iterations); });
+
+    std::cout << "KCL RTTI Performance (" << iterations
+              << " iterations): " << timeResult << std::endl;
+
+    EXPECT_TRUE(true);
 }

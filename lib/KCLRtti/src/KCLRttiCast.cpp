@@ -10,29 +10,30 @@
 class Grandfather {
   public:
     KCL_RTTI_IMPL()
-    virtual ~Grandfather() {}
+    virtual ~Grandfather() = default;
 };
 KCL_RTTI_REGISTER(Grandfather)
 
 class Father : public Grandfather {
   public:
     KCL_RTTI_IMPL()
-    virtual ~Father() {}
+    ~Father() override = default;
 };
 KCL_RTTI_REGISTER(Father, Grandfather)
 
 class Son : public Father {
   public:
     KCL_RTTI_IMPL()
-    virtual ~Son() {}
+    ~Son() override = default;
 };
 KCL_RTTI_REGISTER(Son, Father)
 
 class LaoWang {
   public:
     KCL_RTTI_IMPL()
-    virtual ~LaoWang() {}
+    virtual ~LaoWang() = default;
 };
+
 KCL_RTTI_REGISTER(LaoWang)
 
 void testKCLRttiCast(uint64_t times = 1000000) {

@@ -3,7 +3,6 @@
 #include <vector>
 
 namespace {
-
     class Grandfather {
       public:
         virtual ~Grandfather(){};
@@ -17,6 +16,7 @@ namespace {
     class Father : public Grandfather {};
     class Son : public Father {};
     class LaoWang {
+      public:
         virtual ~LaoWang() {}
     };
 

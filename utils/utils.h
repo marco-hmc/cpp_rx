@@ -3,6 +3,7 @@
 #include <chrono>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <utility>
 
 enum class Status { kSuccess, kFailure };
@@ -22,20 +23,28 @@ enum class Status { kSuccess, kFailure };
 
 namespace myUtils {
     template <typename Func, typename... Args>
-    inline void measure_time(Func&& func, Args&&... args) {
+    inline std::string measure_time(Func&& func, Args&&... args) {
         auto start = std::chrono::high_resolution_clock::now();
         std::forward<Func>(func)(std::forward<Args>(args)...);
         auto end = std::chrono::high_resolution_clock::now();
         auto duration =
             std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-        double milliseconds = duration.count() / 1e6;
-        if (milliseconds < 1000) {
-            std::cout << std::scientific << std::setprecision(2) << milliseconds
-                      << " ms" << std::endl;
+        double nanoseconds = duration.count();
+
+        std::ostringstream oss;
+        if (nanoseconds < 1000) {
+            oss << std::fixed << std::setprecision(1) << nanoseconds << " ns";
+        } else if (nanoseconds < 1000000) {
+            double microseconds = nanoseconds / 1000;
+            oss << std::fixed << std::setprecision(1) << microseconds << " μs";
+        } else if (nanoseconds < 1000000000) {
+            double milliseconds = nanoseconds / 1000000;
+            oss << std::fixed << std::setprecision(1) << milliseconds << " ms";
         } else {
-            std::cout << std::scientific << std::setprecision(2)
-                      << milliseconds / 1000 << " s" << std::endl;
+            double seconds = nanoseconds / 1000000000;
+            oss << std::fixed << std::setprecision(2) << seconds << " s";
         }
+        return oss.str();
     }
 
 }  // namespace myUtils

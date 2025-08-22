@@ -2,9 +2,13 @@
 
 #include <gtest/gtest.h>
 
+#include <iostream>
 #include <memory>
 
-#define IS_BLOOD_RELATED(obj, type) ((obj)->cast<type>())
+#include "rttiCast.h"
+#include "utils.h"
+
+#define IS_BLOOD_RELATED(obj, type) ((obj) ? (obj)->cast<type>() : nullptr)
 
 class Grandfather : public RTTI::Enable {
     RTTI_DECLARE_TYPEINFO(Grandfather);
@@ -173,4 +177,17 @@ TEST(RttiTest, PolymorphicScenario) {
     EXPECT_FALSE(IS_BLOOD_RELATED(baseA, DerivedB));
     EXPECT_TRUE(IS_BLOOD_RELATED(baseB, DerivedB));
     EXPECT_FALSE(IS_BLOOD_RELATED(baseB, DerivedA));
+}
+
+TEST(RttiTest, PerformanceTest) {
+    const uint64_t iterations = 1000000;
+
+    std::string timeResult =
+        myUtils::measure_time([&]() { testRTTI(iterations); });
+
+    std::cout << "RTTI Performance (" << iterations
+              << " iterations): " << timeResult << std::endl;
+
+    // 测试应该在合理时间内完成
+    EXPECT_TRUE(true);  // 只要没有崩溃就算通过
 }

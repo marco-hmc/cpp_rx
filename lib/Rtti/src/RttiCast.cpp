@@ -27,17 +27,19 @@ namespace {
 
 #define IS_BLOOD_RELATED(obj, type) ((obj)->cast<type>())
 
-void testRTTI(uint64_t times = 1000000) {
+void testRTTI(uint64_t times) {
     std::vector<Grandfather*> objects;
     objects.reserve(times);
-    for (int i = 0; i < times; ++i) {
+
+    for (uint64_t i = 0; i < times; ++i) {
         objects.push_back(new Son());
     }
 
-    for (int i = 0; i < times; ++i) {
-        assert(IS_BLOOD_RELATED(objects[i], Father));
-        assert(IS_BLOOD_RELATED(objects[i], Grandfather));
-        assert(!IS_BLOOD_RELATED(objects[i], LaoWang));
+    for (uint64_t i = 0; i < times; ++i) {
+        auto* obj = objects[i];
+        assert(IS_BLOOD_RELATED(obj, Father));
+        assert(IS_BLOOD_RELATED(obj, Grandfather));
+        assert(!IS_BLOOD_RELATED(obj, LaoWang));
     }
 
     for (auto* obj : objects) {
