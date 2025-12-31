@@ -4,8 +4,6 @@
 #include <cstdint>
 #include <vector>
 
-#include "common.h"
-
 namespace {
     class Grandfather : public RTTI::Enable {
         RTTI_DECLARE_TYPEINFO(Grandfather);

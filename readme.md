@@ -1,172 +1,89 @@
-# RTTI Benchmark
+## RTTI Benchmark
 
-一个用于比较 `std::dynamic_cast` 和自定义 RTTI 实现性能的 C++ 基准测试库。
+用于比较 `std::dynamic_cast` 与自定义 RTTI 实现性能的 C++ 基准测试项目。
 
-## 1. 概念
+### 1. 自定义 RTTI 能比 std::dynamic_cast 更快的原因与权衡
 
-### 1.1 自己实现的 RTTI 比 std 实现快的 trade off 是什么？
+#### 1.1 性能优势
 
-**性能优势：**
-- **更快的类型检查**：自定义实现通常使用简单的整数或指针比较，而 `std::dynamic_cast` 需要遍历类型层次结构
-- **编译时优化**：可以在编译时生成类型 ID，减少运行时开销
-- **缓存友好**：减少内存访问，提高缓存命中率
+- **类型检查更快**：自定义 RTTI 通常通过整数或指针直接比较类型 ID，避免了标准 RTTI 复杂的类型层次遍历。
+- **编译期优化**：类型信息和 ID 可在编译期生成，运行时只需简单判断。
+- **缓存友好**：结构更简单，减少多余的内存访问，提高缓存命中率。
+- **无虚表查找**：避免标准 RTTI 的虚表查找和复杂的继承关系解析。
 
-**Trade-offs（权衡）：**
-- **类型安全性降低**：失去编译器提供的类型安全保证
-- **可移植性问题**：无法跨模块边界或不同编译器工作
-- **维护复杂度**：需要手动管理类型注册和 ID 分配
-- **标准兼容性**：不遵循 C++ 标准，可能与其他库冲突
-- **调试困难**：类型错误更难追踪和调试
+#### 1.2 Trade-off（权衡）
 
-### 1.2 自己实现 RTTI 的关键是什么？
+- **类型安全性降低**：失去编译器的类型安全检查，易出错。
+- **可移植性差**：类型 ID 不能跨动态库或编译器，模块间类型不一致。
+- **维护复杂度高**：需要手动注册类型、分配 ID，代码易出错。
+- **标准兼容性问题**：不遵循 C++ 标准，可能与第三方库冲突。
+- **调试困难**：类型错误不易追踪，调试成本高。
+- **多重/虚继承支持有限**：复杂继承场景下自定义 RTTI 可能失效。
 
-**核心技术：**
+### 2. 自定义 RTTI 的核心实现要点
 
-1. **类型 ID 系统**
-   ```cpp
-   // 为每个类型分配唯一 ID
-   template<typename T>
-   struct TypeID {
-       static const int value;
-   };
-   ```
+#### 2.1 类型唯一标识（Type ID）
 
-2. **基类型信息存储**
-   ```cpp
-   class RTTIBase {
-   protected:
-       int type_id_;
-   public:
-       virtual int getTypeID() const = 0;
-   };
-   ```
-
-3. **快速类型转换**
-   ```cpp
-   template<typename To, typename From>
-   To* fast_cast(From* obj) {
-       return (obj && obj->getTypeID() == TypeID<To>::value) 
-              ? static_cast<To*>(obj) : nullptr;
-   }
-   ```
-
-## 2. 项目结构
-
-```
-├── include/
-│   ├── rtti_base.h      # RTTI 基类定义
-│   ├── fast_cast.h      # 快速类型转换实现
-│   └── type_registry.h  # 类型注册系统
-├── src/
-│   ├── benchmark.cpp    # 基准测试代码
-│   └── example.cpp      # 使用示例
-├── tests/
-│   └── test_rtti.cpp    # 单元测试
-└── CMakeLists.txt       # 构建配置
-```
-
-## 3. 使用方法
-
-### 3.1 定义支持自定义 RTTI 的类
+为每个类型分配唯一的类型 ID，通常用静态成员变量实现：
 
 ```cpp
-#include "rtti_base.h"
-
-class Shape : public RTTIBase {
-public:
-    DECLARE_RTTI(Shape)
-    virtual void draw() = 0;
-};
-
-class Circle : public Shape {
-public:
-    DECLARE_RTTI(Circle)
-    void draw() override { /* 实现 */ }
-};
-
-class Rectangle : public Shape {
-public:
-    DECLARE_RTTI(Rectangle)
-    void draw() override { /* 实现 */ }
+template<typename T>
+struct TypeID {
+    static const int value;
 };
 ```
 
-### 3.2 使用快速类型转换
+#### 2.2 类型注册与基类信息
+
+每个类型在定义时注册自己的类型 ID，并记录其基类类型 ID：
 
 ```cpp
-#include "fast_cast.h"
-
-Shape* shape = new Circle();
-
-// 自定义 RTTI 转换
-Circle* circle1 = fast_cast<Circle>(shape);
-
-// 标准 dynamic_cast 转换
-Circle* circle2 = dynamic_cast<Circle*>(shape);
+class RTTIBase {
+protected:
+    int type_id_;
+public:
+    virtual int getTypeID() const = 0;
+};
 ```
 
-## 4. 基准测试结果
+#### 2.3 快速类型转换接口
 
-### 4.1 测试环境
-- **编译器**: GCC 11.2.0 / Clang 13.0.0
-- **优化级别**: -O2
-- **测试次数**: 1,000,000 次类型转换
+通过类型 ID 判断是否可以安全转换，避免标准 RTTI 的层次遍历：
 
-### 4.2 性能对比
-
-| 转换类型 | std::dynamic_cast | fast_cast | 性能提升 |
-|---------|-------------------|-----------|----------|
-| 成功转换 | 45.2 ns | 12.1 ns | **3.7x** |
-| 失败转换 | 38.7 ns | 8.3 ns | **4.7x** |
-| 深层继承 | 89.4 ns | 12.1 ns | **7.4x** |
-
-### 4.3 内存开销
-
-| 实现方式 | 每对象开销 | 全局开销 |
-|---------|------------|----------|
-| std::dynamic_cast | 8 bytes (vtable) | 类型信息表 |
-| fast_cast | 4 bytes (type_id) | 类型注册表 |
-
-## 5. 限制和注意事项
-
-### 5.1 已知限制
-- **跨模块问题**：不同动态库中的相同类型可能有不同的类型 ID
-- **多重继承**：复杂的多重继承场景下可能失效
-- **虚继承**：不支持虚继承的复杂场景
-
-### 5.2 最佳实践
-- 仅在性能关键路径使用
-- 保持类型层次结构简单
-- 充分测试类型转换的正确性
-- 考虑使用 `static_cast` 替代简单场景
-
-## 6. 构建和运行
-
-```bash
-# 克隆项目
-git clone <repository-url>
-cd rtti-benchmark
-
-# 构建项目
-mkdir build && cd build
-cmake ..
-make
-
-# 运行基准测试
-./rtti_benchmark
-
-# 运行单元测试
-./test_rtti
+```cpp
+template<typename To, typename From>
+To* fast_cast(From* obj) {
+    return (obj && obj->getTypeID() == TypeID<To>::value)
+           ? static_cast<To*>(obj) : nullptr;
+}
 ```
 
-## 7. 参考资料
+#### 2.4 多继承支持（可选）
 
-Dynamic Cast 和 RTTI 的问题在于它不能跨越模块边界或不同的编译器。
+如需支持多继承，可在类型注册时记录所有基类的类型 ID，并在转换时遍历所有基类 ID。
 
-- [C++ Tricks: Fast RTTI and Dynamic Cast](https://kahncode.com/2019/09/24/c-tricks-fast-rtti-and-dynamic-cast/)
-- [elohim-meth/rtti](https://github.com/elohim-meth/rtti)
-- [C++ Core Guidelines: Type Safety](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#SS-type)
+### 3. 限制与最佳实践
 
-## 8. 许可证
+- **跨模块/动态库问题**：类型 ID 仅在同一编译单元有效。
+- **复杂继承场景需谨慎**：多重继承、虚继承需额外处理。
+- **仅在性能关键路径使用**：普通场景建议用标准 RTTI。
+- **保持类型层次结构简单**：减少维护成本。
+- **充分测试类型转换正确性**。
 
-MIT License - 详见 [LICENSE](LICENSE) 文件。
+### 4. 结论
+
+```
+---------------------------------------------------------------------
+Benchmark                           Time             CPU   Iterations
+---------------------------------------------------------------------
+BM_testDynamicCast/1000000       86.0 ms         86.0 ms            9
+BM_testDynamicCast/10000        0.769 ms        0.769 ms          895
+BM_testRTTI/1000000              1348 ms         1348 ms            1
+BM_testRTTI/10000                11.8 ms         11.8 ms           57
+BM_testKCLRttiCast/1000000       84.2 ms         84.2 ms            9
+BM_testKCLRttiCast/10000        0.751 ms        0.751 ms          927
+```
+
+在本文的测试中，自定义 RTTI 实现（KCLRttiCast）仅仅轻微优于 `std::dynamic_cast`，另一个自定义实现（RTTI）性能较差。我认为std::dynamic_cast实现已经非常优化，且现代编译器对其进行了大量优化，因此自定义 RTTI 的优势并不明显。
+
+而自定义 RTTI 带来的类型安全性降低、维护复杂度增加等问题，使得在大多数情况下，除非在极端性能要求的场景下，否则不建议使用自定义 RTTI。

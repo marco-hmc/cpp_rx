@@ -3,7 +3,6 @@
 #include <vector>
 
 #include "KCL_RTTI.h"
-#include "common.h"
 
 #define IS_BLOOD_RELATED(obj, type) (kcl_dynamic_cast<type*>(obj))
 
@@ -36,7 +35,7 @@ class LaoWang {
 
 KCL_RTTI_REGISTER(LaoWang)
 
-void testKCLRttiCast(uint64_t times = 1000000) {
+void testKCLRttiCast(uint64_t times) {
     std::vector<Grandfather*> objects;
     objects.reserve(times);
     for (int i = 0; i < times; ++i) {

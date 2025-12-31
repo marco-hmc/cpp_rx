@@ -10,8 +10,10 @@ add_executable(${PARENT_PROJECT_NAME}_test ${PARENT_PROJECT_NAME}_test.cpp)
 find_package(GTest REQUIRED)
 find_package(Threads REQUIRED)
 
-include_directories(${GTEST_INCLUDE_DIRS})
-include_directories(${PARENT_PROJECT_NAME}/include)
+target_include_directories(${PARENT_PROJECT_NAME}_test PRIVATE
+    ${PARENT_PROJECT_NAME}/include
+    ${CMAKE_SOURCE_DIR}/utils
+)
 
 target_link_libraries(${PARENT_PROJECT_NAME}_test ${PARENT_PROJECT_NAME} ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
